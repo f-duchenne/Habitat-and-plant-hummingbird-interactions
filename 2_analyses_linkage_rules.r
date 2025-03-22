@@ -1,7 +1,7 @@
 ###########################################
 #' Check for packages and if necessary install into library 
 #+ message = FALSE
-pkgs <- c("data.table", "dplyr", "lubridate","lme4","glmmTMB","ggeffects","car","mixedup","ggplot2","cowplot","gridExtra") 
+pkgs <- c("data.table", "dplyr", "lubridate","lme4","glmmTMB","ggeffects","car","mixedup","ggplot2","cowplot","gridExtra","ape","caper","ggtree") 
 
 # Check if packages are already installed
 inst <- pkgs %in% installed.packages()
@@ -116,6 +116,40 @@ pdf(paste0(project_folder,"/Fig.3.pdf"),width=5,height=6)
 plot_grid(pl1,pl2,pl3,pl4,ncol=2,align="hv")
 dev.off();
 
+########### random effects
+obj=mixedup::extract_random_coefs(model,re="hummingbird_species",component ="cond",type="zi_random")
+obj=subset(obj,effect=="habitatdeforested")
+obj=merge(obj,unique(subset(tab,Y>0,select=c(hummingbird_species,culmen_length))),by.x="group",by.y="hummingbird_species")
+
+ggplot(data=obj,aes(x=culmen_length,y=value))+geom_pointrange(aes(ymin=lower_2.5,ymax=upper_97.5))+geom_hline(yintercept=0)
+
+ht=fread("C:/Users/Duchenne/Documents/EPHI_data_clean/hummingbird_traits_2024-03-18/Hummingbird_traits_avonet.txt")
+obj=merge(obj,ht,by.x="group",by.y="hummingbird_species")
+
+phy=read.tree("C:/Users/Duchenne/Documents/EPHI_data_clean/hummingbird_traits_2024-03-18/hummingbird_phylo.tre")
+
+phy$tip.label=gsub("_"," ",phy$tip.label)
+phy$tip.label[phy$tip.label=="Colibri thalassinus"]="Colibri cyanotus"
+phy$tip.label[phy$tip.label=="Schistes geoffroyi"]="Schistes albogularis"
+phy=drop.tip(phy,which(duplicated(phy$tip.label)))
+
+p4d=comparative.data(phy, obj, group, vcv=TRUE)
+biche=p4d$data
+biche[,1]=rownames(biche)
+names(biche)[1]="id"
+
+p <-  ggtree(p4d$phy)+geom_tiplab(size=2) + xlim_tree(30)
+p2=p+geom_facet(data=biche,mapping=aes(x=value,xmin=lower_2.5,xmax=upper_97.5,color=value),geom=geom_pointrange,panel="Sensitivity to deforestation")+scale_color_gradient2()+theme(strip.background=element_blank())
+
+pdf(paste0(project_folder,"Fig.phylo.pdf"),width=7,height=7)
+facet_plot(p2,panel="Sensitivity to deforestation",data=biche,geom=geom_vline,mapping=aes(xintercept=0),linetype="dashed")+labs(color="")
+dev.off();
+
+mod2 <- pgls(value ~ culmen_length+Mass+Wing.Length, data=p4d, lambda='ML')
+mod2 <-phylolm(value ~ culmen_length+Habitat+Tarsus.Length, data=p4d$data,phy=p4d$phy,model ="lambda",boot=100)
+model=lm(value ~ culmen_length+Mass+Habitat, data=p4d$data)
+
+
 ########### forbidden links
 tab2=unique(subset(tab,Y>0,select=c(hummingbird_species,site,culmen_length)))
 #Load plant transect data
@@ -142,36 +176,3 @@ b=tabt %>% group_by(site,habitat,min_transect_elev) %>% summarise(nlink=length(h
 
 ggplot(data=b,aes(x=min_transect_elev,y=prop_forbidden,color=habitat))+geom_point()
 boxplot(prop_forbidden~habitat,data=b)
-
-
-########### random effects
-obj=mixedup::extract_random_coefs(model,re="hummingbird_species",component ="cond",type="zi_random")
-obj=subset(obj,effect=="habitatdeforested")
-obj=merge(obj,unique(subset(tab,Y>0,select=c(hummingbird_species,culmen_length))),by.x="group",by.y="hummingbird_species")
-
-ggplot(data=obj,aes(x=culmen_length,y=value))+geom_pointrange(aes(ymin=lower_2.5,ymax=upper_97.5))+geom_hline(yintercept=0)
-
-ht=fread("C:/Users/Duchenne/Documents/EPHI_data_clean/hummingbird_traits_2024-03-18/Hummingbird_traits_avonet.txt")
-obj=merge(obj,ht,by.x="group",by.y="hummingbird_species")
-
-phy=read.tree("C:/Users/Duchenne/Documents/EPHI_data_clean/hummingbird_traits_2024-03-18/hummingbird_phylo.tre")
-
-
-phy$tip.label=gsub("_"," ",phy$tip.label)
-phy$tip.label[phy$tip.label=="Colibri thalassinus"]="Colibri cyanotus"
-phy$tip.label[phy$tip.label=="Schistes geoffroyi"]="Schistes albogularis"
-phy=drop.tip(phy,which(duplicated(phy$tip.label)))
-
-p4d=comparative.data(phy, obj, group, vcv=TRUE)
-biche=p4d$data
-biche[,1]=rownames(biche)
-names(biche)[1]="id"
-
-p <-  ggtree(p4d$phy)+geom_tiplab(size=2) + xlim_tree(30)
-p2=p+geom_facet(data=biche,mapping=aes(x=value,xmin=lower_2.5,xmax=upper_97.5,color=value),geom=geom_pointrange,panel="Sensitivity to deforestation")+scale_color_gradient2()+theme(strip.background=element_blank())
-
-facet_plot(p2,panel="Sensitivity to deforestation",data=biche,geom=geom_vline,mapping=aes(xintercept=0),linetype="dashed")+labs(color="")
-
-mod2 <- pgls(value ~ culmen_length+Mass+Wing.Length, data=p4d, lambda='ML')
-mod2 <-phylolm(value ~ culmen_length+Habitat+Tarsus.Length, data=p4d$data,phy=p4d$phy,model ="lambda",boot=100)
-model=lm(value ~ culmen_length+Mass+Habitat, data=p4d$data)
