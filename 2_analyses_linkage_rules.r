@@ -1,7 +1,7 @@
 ###########################################
 #' Check for packages and if necessary install into library 
 #+ message = FALSE
-pkgs <- c("data.table", "dplyr", "lubridate","lme4","glmmTMB","ggeffects","car","mixedup","ggplot2","cowplot","gridExtra","ape","caper","ggtree") 
+pkgs <- c("data.table", "dplyr", "lubridate","lme4","glmmTMB","ggeffects","car","mixedup","ggplot2","cowplot","gridExtra","ape","caper","ggtree","terra") 
 
 # Check if packages are already installed
 inst <- pkgs %in% installed.packages()
@@ -120,6 +120,8 @@ dev.off();
 obj=mixedup::extract_random_coefs(model,re="hummingbird_species",component ="cond",type="zi_random")
 obj=subset(obj,effect=="habitatdeforested")
 obj=merge(obj,unique(subset(tab,Y>0,select=c(hummingbird_species,culmen_length))),by.x="group",by.y="hummingbird_species")
+
+fwrite(obj,"effects_hummingbirds_deforestation.csv")
 
 ggplot(data=obj,aes(x=culmen_length,y=value))+geom_pointrange(aes(ymin=lower_2.5,ymax=upper_97.5))+geom_hline(yintercept=0)
 
