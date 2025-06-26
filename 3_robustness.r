@@ -97,22 +97,27 @@ scale_color_manual(values=colo)+ggtitle("a")
 
 resf$dive=resf$np+resf$nh
 
-model=glm(stab~dive*habitat,data=subset(resf,rho==0.1),family="quasibinomial")
+rhos=0.0
+
+model=glm(stab~dive*habitat,data=subset(resf,rho==rhos),family="quasibinomial")
 car::Anova(model)
 b=ggpredict(model,c("dive","habitat"))
 
 
-pl2=ggplot()+geom_point(data=subset(resf,rho==0.1),aes(color=habitat,y=stab,x=dive))+geom_ribbon(data=b,aes(x=x,ymin=conf.low,ymax=conf.high,y=predicted,fill=group),color=NA,alpha=0.3)+
+pl2=ggplot()+geom_point(data=subset(resf,rho==rhos),aes(color=habitat,y=stab,x=dive))+geom_ribbon(data=b,aes(x=x,ymin=conf.low,ymax=conf.high,y=predicted,fill=group),color=NA,alpha=0.3)+
 geom_line(data=b,aes(x=x,y=predicted,color=group))+
 theme_bw()+
 theme(axis.line = element_line(colour = "black"),panel.grid.major = element_blank(),panel.border=element_blank(),
 panel.grid.minor = element_blank(),panel.background = element_blank(),plot.title=element_text(size=14,face="bold",hjust = 0),
 strip.background=element_rect(fill=NA,color=NA),legend.position="right")+xlab("Species richness (plant+hummingbird)")+ylab("Structural stability")+
-scale_color_manual(values=colo)+scale_fill_manual(values=colo)+ggtitle("b")
+scale_color_manual(values=colo)+scale_fill_manual(values=colo)+ggtitle("b")+labs(color="",fill="")
 
 
 
-plot_grid(pl1,pl2,align="hv")
+pdf(paste0(project_folder,"Figure_4.pdf"),width=7,height=3)
+plot_grid(pl1,pl2,align="h")
+dev.off();
+
 
 
 
